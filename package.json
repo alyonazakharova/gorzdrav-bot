@@ -1,0 +1,26 @@
+{
+  "name": "gorzdrav-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alyonazakharova/gorzdrav-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alyonazakharova/gorzdrav-bot/issues"
+  },
+  "homepage": "https://github.com/alyonazakharova/gorzdrav-bot#readme",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "node-telegram-bot-api": "^0.60.0",
+    "nodemon": "^2.0.20"
+  }
+}
