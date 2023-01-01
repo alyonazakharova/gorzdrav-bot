@@ -24,7 +24,7 @@ var usersMap = new Map()
 const start = () => {
     bot.setMyCommands([
         {command: '/info', description: 'Показать, что может этот бот'},
-        {command: '/schedule', description: 'Записаться ко врачу'}
+        {command: '/schedule', description: 'Записаться к врачу'}
     ])
 
     bot.on('message', async msg => {
