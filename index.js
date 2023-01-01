@@ -12,17 +12,11 @@ class ProcessInfo {
     isLpuSelected = false
     isSpecialtySelected = false
     isDoctorSelected = false
+    isAppointmentSelected = false
     lpuId
     specialtyId
-
-//    constructor() {
-//        this.isDistrictSelected = false
-//        this.isLpuSelected = false
-//        this.isSpecialtySelected = false
-//        this.isDoctorSelected = false
-//        this.lpuId = -1
-//        this.specialtyId = -1
-//    }
+    doctorId
+    appointmentId
 }
 
 var usersMap = new Map()
@@ -58,26 +52,75 @@ const start = () => {
 
         if (!processInfo.isDistrictSelected) {
             processInfo.isDistrictSelected = true
-
             let districtId = msg.data
+
+            // FIXME
             reply = `SELECTED DISTRICT ID IS ${districtId}`
             bot.sendMessage(chatId, reply)
 
             let lpus = await getLpus(districtId)
+
+            reply = 'В выбранном вами районе доступны следующие медецинские учреждения:'
+            _.forEach(lpus, function (lpu) {
+                reply += `\n\n${lpu.lpuFullName} (${lpu.lpuShortName})\n${lpu.address}`
+            })
+            reply += '\n\nВыберите подходящее учреждение:'
+
             let lpuOptions = getLpuOptions(lpus)
-            return bot.sendMessage(chatId, 'Выберите учреждение', lpuOptions)
+            return bot.sendMessage(chatId, reply, lpuOptions)
         } else if (!processInfo.isLpuSelected) {
             processInfo.isLpuSelected = true
             processInfo.lpuId = msg.data
+
+            // FIXME
             reply = `SELECTED LPU ID IS ${processInfo.lpuId}`
-            return bot.sendMessage(chatId, reply)
-            // TODO specialty selection
+            bot.sendMessage(chatId, reply)
+
+            let specialties = await getSpecialties(processInfo.lpuId)
+            let specialtyOptions = getSpecialtyOptions(specialties)
+            reply = 'Выберите специализацию'
+            return bot.sendMessage(chatId, reply, specialtyOptions)
         } else if (!processInfo.isSpecialtySelected) {
-            return bot.sendMessage(chatId, "Тут тоже еще не допилили выбор докторов :(")
+            processInfo.isSpecialtySelected = true
+            processInfo.specialtyId = msg.data
+
+            // FIXME
+            reply = `SELECTED LPU ID IS ${processInfo.lpuId} AND SELECTED SPECIALTY ID IS ${processInfo.specialtyId}`
+            bot.sendMessage(chatId, reply)
+
+            let doctors = await getDoctors(processInfo.lpuId, processInfo.specialtyId)
+            let doctorOptions = getDoctorOptions(doctors)
+
+            // TODO добавить сообщение об отсутствии номерков (можно и у специализий)
+
+            reply = 'Выберите врача'
+            return bot.sendMessage(chatId, reply, doctorOptions)
+        } else if (!processInfo.isDoctorSelected) {
+            processInfo.isDoctorSelected = true
+            processInfo.doctorId = msg.data
+
+            // FIXME
+            bot.sendMessage(chatId, "SELECTED DOCTOR ID IS " + processInfo.doctorId)
+
+            let appointments = await getAppointments(processInfo.lpuId, processInfo.doctorId)
+            // FIXME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            let appointemntOptions = getAppointmentOptions(appointments)
+
+            reply = 'Выберите подходящую дату и время'
+            return bot.sendMessage(chatId, reply, appointemntOptions)
+        } else if (!processInfo.isDateSelected) {
+            processInfo.isDateSelected = true
+            processInfo.appointmentId = msg.data
+
+            return bot.sendMessage(chatId, `SELECTED APPOINTMENT ID IS ${processInfo.appointmentId}`)
         }
         return bot.sendMessage(chatId, "Что-то еще не допилили походу :(")
     })
 }
+
+
+
+
 
 async function getDistricts() {
     const response = await axios.get('https://gorzdrav.spb.ru/_api/api/v2/shared/districts')
@@ -112,16 +155,46 @@ async function getSpecialties(lpuId) {
     return response.data.result
 }
 
+function getSpecialtyOptions(specialties) {
+    let specialtyOptions = new Array(specialties.length)
+    for (let i = 0; i < specialties.length; i++) {
+        specialtyOptions[i] =  [{text: specialties[i].name, callback_data: specialties[i].id}]
+    }
+    return {"reply_markup": JSON.stringify({inline_keyboard: specialtyOptions})}
+}
+
 async function getDoctors(lpuId, specialtyId) {
     let url = `https://gorzdrav.spb.ru/_api/api/v2/schedule/lpu/${lpuId}/speciality/${specialtyId}/doctors`
     const response = await axios.get(url)
     return response.data.result
 }
 
+function getDoctorOptions(doctors) {
+    let doctorOptions = new Array(doctors.length)
+    for (let i = 0; i < doctors.length; i++) {
+        doctorOptions[i] =  [{text: doctors[i].name, callback_data: doctors[i].id}]
+    }
+    return {"reply_markup": JSON.stringify({inline_keyboard: doctorOptions})}
+}
+
 async function getAppointments(lpuId, doctorId) {
     let url = `https://gorzdrav.spb.ru/_api/api/v2/schedule/lpu/${lpuId}/doctor/${doctorId}/appointments`
     const response = await axios.get(url)
-    return response.data.result
+    if (!response.data.success) {
+        // TODO handle error
+        console.log(response.data.message)
+        return null
+    } else {
+        return response.data.result
+    }
+}
+
+function getAppointmentOptions(appointemnts) {
+    let appointmentOptions = new Array(appointemnts.length)
+    for (let i = 0; i < appointemnts.length; i++) {
+        appointmentOptions[i] =  [{text: appointemnts[i].visitStart, callback_data: appointemnts[i].id}]
+    }
+    return {"reply_markup": JSON.stringify({inline_keyboard: appointmentOptions})}
 }
 
 start()
